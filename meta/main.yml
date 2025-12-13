@@ -1,10 +1,10 @@
 ---
 galaxy_info:
   author: spatterlight <spatterlight@spatterlight.space>
-  description: Install and configure simple Tinc VPN networks
+  description: Install and configure WireGuard VPNs
   license: MIT
   min_ansible_version: 2.4
   galaxy_tags:
-    - ansible-role-tinc
+    - ansible-role-wireguard
 
 dependencies: []

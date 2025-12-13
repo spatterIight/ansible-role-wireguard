@@ -2,7 +2,7 @@
 
 ## What it is
 
-Install and configure Wireguard VPNs
+Install and configure WireGuard VPNs
 
 ## How to use
 
@@ -15,12 +15,12 @@ One thing to keep in mind is how this role manages the public/private key-pair:
 
 ## Role Variables
 
-| Variable              | Default   | Description                                     |
-|-----------------------|-----------|-------------------------------------------------|
-| `wireguard_user`      | root      | The user to permission as                       |
-| `wireguard_user`      | root      | The group to permission as                      |
-| `wireguard_directory` | /etc/tinc | The base tinc configuration directory           |
-| `wireguard_networks`  | []        | A list of dictionaries of networks to configure |
+| Variable              | Default         | Description                                     |
+|-----------------------|-----------------|-------------------------------------------------|
+| `wireguard_user`      | root            | The user to permission as                       |
+| `wireguard_group`     | root            | The group to permission as                      |
+| `wireguard_directory` | /etc/wireguard  | The base WireGuard configuration directory      |
+| `wireguard_networks`  | []              | A list of dictionaries of networks to configure |
 
 ## Default Playbook
 ```

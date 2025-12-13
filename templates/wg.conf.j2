@@ -1,0 +1,60 @@
+[Interface]
+{% if item.address is defined %}
+Address = {{ item.address }}
+{% endif %}
+{% if item.private_key is defined %}
+PrivateKey = {{ item.private_key }}
+{% else %}
+{% for result in wireguard_private_key_content.results %}
+{% if result.item.network_name == item.network_name and not result.skipped | default(false) %}
+PrivateKey = {{ result.content | b64decode | trim }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if item.listen_port is defined %}
+ListenPort = {{ item.listen_port }}
+{% endif %}
+{% if item.mtu is defined %}
+MTU = {{ item.mtu }}
+{% endif %}
+{% if item.dns is defined %}
+DNS = {{ item.dns if item.dns is string else item.dns | join(', ') }}
+{% endif %}
+{% if item.table is defined %}
+Table = {{ item.table }}
+{% endif %}
+{% if item.pre_up is defined %}
+PreUp = {{ item.pre_up }}
+{% endif %}
+{% if item.post_up is defined %}
+PostUp = {{ item.post_up }}
+{% endif %}
+{% if item.pre_down is defined %}
+PreDown = {{ item.pre_down }}
+{% endif %}
+{% if item.post_down is defined %}
+PostDown = {{ item.post_down }}
+{% endif %}
+{% if item.save_config is defined %}
+SaveConfig = {{ item.save_config | lower }}
+{% endif %}
+
+{% if item.peers is defined %}
+{% for peer in item.peers %}
+[Peer]
+PublicKey = {{ peer.public_key }}
+{% if peer.preshared_key is defined %}
+PresharedKey = {{ peer.preshared_key }}
+{% endif %}
+{% if peer.allowed_ips is defined %}
+AllowedIPs = {{ peer.allowed_ips if peer.allowed_ips is string else peer.allowed_ips | join(', ') }}
+{% endif %}
+{% if peer.endpoint is defined %}
+Endpoint = {{ peer.endpoint }}
+{% endif %}
+{% if peer.persistent_keepalive is defined %}
+PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
