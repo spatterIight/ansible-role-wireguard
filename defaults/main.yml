@@ -3,3 +3,4 @@ wireguard_user: "root"
 wireguard_group: "root"
 wireguard_directory: "/etc/wireguard"
 wireguard_networks: []
+wireguard_backup_conf: true

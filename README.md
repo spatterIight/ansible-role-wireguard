@@ -15,12 +15,13 @@ One thing to keep in mind is how this role manages the public/private key-pair:
 
 ## Role Variables
 
-| Variable              | Default         | Description                                     |
-|-----------------------|-----------------|-------------------------------------------------|
-| `wireguard_user`      | root            | The user to permission as                       |
-| `wireguard_group`     | root            | The group to permission as                      |
-| `wireguard_directory` | /etc/wireguard  | The base WireGuard configuration directory      |
-| `wireguard_networks`  | []              | A list of dictionaries of networks to configure |
+| Variable                | Default         | Description                                                                              | 
+|-------------------------|-----------------|------------------------------------------------------------------------------------------|
+| `wireguard_user`        | root            | The user to permission as                                                                |
+| `wireguard_group`       | root            | The group to permission as                                                               |
+| `wireguard_directory`   | /etc/wireguard  | The base WireGuard configuration directory                                               |
+| `wireguard_networks`    | []              | A list of dictionaries of networks to configure                                          |
+| `wireguard_backup_conf` | true            | Controls whether or not existing configuration files are backed up before being modified |
 
 ## Default Playbook
 ```

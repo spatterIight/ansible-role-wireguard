@@ -91,6 +91,7 @@
     owner: "{{ wireguard_user }}"
     group: "{{ wireguard_group }}"
     mode: "0600"
+    backup: "{{ wireguard_backup_conf | bool }}"
   notify: Restart WireGuard
   loop: "{{ wireguard_networks }}"
   tags: ansible-role-wireguard
