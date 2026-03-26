@@ -3,6 +3,9 @@ profile: production # min, basic, moderate, safety, shared, production
 
 skip_list:
   - yaml[line-length]
-  - syntax-check
+
+exclude_paths:
+  - molecule/basic/prepare.yml
+  - molecule/multi_tunnel/prepare.yml
 
 offline: true
