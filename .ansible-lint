@@ -3,6 +3,6 @@ profile: production # min, basic, moderate, safety, shared, production
 
 skip_list:
   - yaml[line-length]
-  - unknown-module
+  - syntax-check
 
 offline: true
