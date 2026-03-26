@@ -1,0 +1,60 @@
+---
+- name: Gather key facts from all hosts
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read private key from temp file
+      ansible.builtin.slurp:
+        src: /tmp/wg0.key
+      register: wg0_priv_b64
+
+    - name: Read public key from temp file
+      ansible.builtin.slurp:
+        src: /tmp/wg0.pub
+      register: wg0_pub_b64
+
+    - name: Set key facts
+      ansible.builtin.set_fact:
+        wg0_private_key: "{{ wg0_priv_b64.content | b64decode | trim }}"
+        wg0_public_key: "{{ wg0_pub_b64.content | b64decode | trim }}"
+
+- name: Configure WireGuard on peer1
+  hosts: peer1
+  become: true
+  gather_facts: false
+  vars:
+    peer2_host: "{{ groups['peer2'][0] }}"
+    wireguard_networks:
+      - network_name: wg0
+        address: 10.100.0.1/24
+        listen_port: 51820
+        private_key: "{{ hostvars[inventory_hostname]['wg0_private_key'] }}"
+        public_key: "{{ hostvars[inventory_hostname]['wg0_public_key'] }}"
+        peers:
+          - public_key: "{{ hostvars[peer2_host]['wg0_public_key'] }}"
+            allowed_ips: "10.100.0.2/32"
+            endpoint: "{{ peer2_host }}:51820"
+            persistent_keepalive: 25
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+
+- name: Configure WireGuard on peer2
+  hosts: peer2
+  become: true
+  gather_facts: false
+  vars:
+    peer1_host: "{{ groups['peer1'][0] }}"
+    wireguard_networks:
+      - network_name: wg0
+        address: 10.100.0.2/24
+        listen_port: 51820
+        private_key: "{{ hostvars[inventory_hostname]['wg0_private_key'] }}"
+        public_key: "{{ hostvars[inventory_hostname]['wg0_public_key'] }}"
+        peers:
+          - public_key: "{{ hostvars[peer1_host]['wg0_public_key'] }}"
+            allowed_ips: "10.100.0.1/32"
+            endpoint: "{{ peer1_host }}:51820"
+            persistent_keepalive: 25
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"

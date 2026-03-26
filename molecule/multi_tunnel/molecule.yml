@@ -4,7 +4,7 @@ driver:
   options:
     requirements-file: requirements.yml
 platforms:
-  - name: strongswan-${MOLECULE_DISTRO:-ubuntu2404}-vici-peer1
+  - name: wg-${MOLECULE_DISTRO:-ubuntu2404}-multitunnel-peer1
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2404}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -12,9 +12,11 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    networks:
+      - name: wg-multitunnel-net
     groups:
       - peer1
-  - name: strongswan-${MOLECULE_DISTRO:-ubuntu2404}-vici-peer2
+  - name: wg-${MOLECULE_DISTRO:-ubuntu2404}-multitunnel-peer2
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2404}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -22,19 +24,18 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    networks:
+      - name: wg-multitunnel-net
     groups:
       - peer2
 provisioner:
   name: ansible
   playbooks:
+    prepare: prepare.yml
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
     verify: ${MOLECULE_VERIFY_PLAYBOOK:-verify.yml}
   config_options:
     defaults:
       callback_result_format: yaml
-  inventory:
-    group_vars:
-      all:
-        strongswan_psk: "MySecurePreSharedKey123!"
 verifier:
   name: ansible

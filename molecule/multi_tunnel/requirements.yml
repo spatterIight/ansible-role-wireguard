@@ -1,13 +1,5 @@
 ---
-#########
-# ROLES #
-#########
-
 roles: []
-
-###############
-# COLLECTIONS #
-###############
 
 collections:
   - name: https://github.com/ansible-collections/ansible.posix.git

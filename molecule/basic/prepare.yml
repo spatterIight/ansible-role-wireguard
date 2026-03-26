@@ -1,0 +1,50 @@
+---
+- name: Prepare WireGuard hosts
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 600
+      when: ansible_os_family == 'Debian'
+      changed_when: false
+
+    - name: Install wireguard-tools and utilities
+      ansible.builtin.package:
+        name:
+          - wireguard-tools
+          - iputils-ping
+        state: present
+
+    - name: Enable IP forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: true
+
+    - name: Generate WireGuard private key
+      ansible.builtin.command: wg genkey
+      register: wg_private_key_raw
+      changed_when: true
+
+    - name: Write private key to temp file
+      ansible.builtin.copy:
+        content: "{{ wg_private_key_raw.stdout }}"
+        dest: /tmp/wg0.key
+        mode: "0600"
+
+    - name: Derive WireGuard public key
+      ansible.builtin.command: wg pubkey
+      args:
+        stdin: "{{ wg_private_key_raw.stdout }}"
+      register: wg_public_key_raw
+      changed_when: false
+
+    - name: Write public key to temp file
+      ansible.builtin.copy:
+        content: "{{ wg_public_key_raw.stdout }}"
+        dest: /tmp/wg0.pub
+        mode: "0644"

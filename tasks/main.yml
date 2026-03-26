@@ -1,7 +1,9 @@
 ---
 - name: Install the WireGuard package
   ansible.builtin.package:
-    name: wireguard
+    name:
+      - wireguard
+      - wireguard-tools
     state: present
   register: wireguard_pkg_result
   tags: ansible-role-wireguard
