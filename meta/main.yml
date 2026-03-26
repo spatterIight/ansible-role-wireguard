@@ -3,8 +3,8 @@ galaxy_info:
   author: spatterlight <spatterlight@spatterlight.space>
   description: Install and configure WireGuard VPNs
   license: MIT
-  min_ansible_version: 2.4
+  min_ansible_version: "2.1"
   galaxy_tags:
-    - ansible-role-wireguard
+    - wireguard
 
 dependencies: []

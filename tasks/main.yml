@@ -36,6 +36,7 @@
   tags: ansible-role-wireguard
 
 - name: Generate WireGuard private key if missing
+  changed_when: true
   ansible.builtin.shell: "wg genkey > {{ wireguard_directory }}/{{ item.network_name }}.key"
   when: not wireguard_private_key.results[index].stat.exists
   loop: "{{ wireguard_networks }}"
@@ -65,6 +66,7 @@
   tags: ansible-role-wireguard
 
 - name: Generate WireGuard public key if undefined
+  changed_when: true
   ansible.builtin.shell: "wg pubkey < {{ wireguard_directory }}/{{ item.network_name }}.key"
   register: wireguard_public_key
   when: item.public_key is not defined
