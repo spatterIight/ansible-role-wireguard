@@ -1,0 +1,74 @@
+---
+- name: Prepare WireGuard hosts
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 600
+      when: ansible_os_family == 'Debian'
+      changed_when: false
+
+    - name: Install wireguard-tools and utilities
+      ansible.builtin.package:
+        name:
+          - wireguard-tools
+          - iputils-ping
+        state: present
+
+    - name: Enable IP forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: true
+
+    - name: Generate WireGuard private key for wg0
+      ansible.builtin.command: wg genkey
+      register: wg0_private_key_raw
+      changed_when: true
+
+    - name: Write wg0 private key to temp file
+      ansible.builtin.copy:
+        content: "{{ wg0_private_key_raw.stdout }}"
+        dest: /tmp/wg0.key
+        mode: "0600"
+
+    - name: Derive WireGuard public key for wg0
+      ansible.builtin.command: wg pubkey
+      args:
+        stdin: "{{ wg0_private_key_raw.stdout }}"
+      register: wg0_public_key_raw
+      changed_when: false
+
+    - name: Write wg0 public key to temp file
+      ansible.builtin.copy:
+        content: "{{ wg0_public_key_raw.stdout }}"
+        dest: /tmp/wg0.pub
+        mode: "0644"
+
+    - name: Generate WireGuard private key for wg1
+      ansible.builtin.command: wg genkey
+      register: wg1_private_key_raw
+      changed_when: true
+
+    - name: Write wg1 private key to temp file
+      ansible.builtin.copy:
+        content: "{{ wg1_private_key_raw.stdout }}"
+        dest: /tmp/wg1.key
+        mode: "0600"
+
+    - name: Derive WireGuard public key for wg1
+      ansible.builtin.command: wg pubkey
+      args:
+        stdin: "{{ wg1_private_key_raw.stdout }}"
+      register: wg1_public_key_raw
+      changed_when: false
+
+    - name: Write wg1 public key to temp file
+      ansible.builtin.copy:
+        content: "{{ wg1_public_key_raw.stdout }}"
+        dest: /tmp/wg1.pub
+        mode: "0644"

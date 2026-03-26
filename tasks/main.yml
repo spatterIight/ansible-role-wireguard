@@ -1,9 +1,11 @@
 ---
 - name: Install the WireGuard package
   ansible.builtin.package:
-    name: wireguard
+    name:
+      - wireguard
+      - wireguard-tools
     state: present
-  notify: Restart WireGuard
+  register: wireguard_pkg_result
   tags: ansible-role-wireguard
 
 - name: Create the base WireGuard directory
@@ -13,7 +15,7 @@
     mode: "0750"
     owner: "{{ wireguard_user }}"
     group: "{{ wireguard_group }}"
-  notify: Restart WireGuard
+  register: wireguard_dir_result
   tags: ansible-role-wireguard
 
 - name: Write WireGuard private key if defined
@@ -23,7 +25,7 @@
     owner: "{{ wireguard_user }}"
     group: "{{ wireguard_group }}"
     mode: "0600"
-  notify: Restart WireGuard
+  register: wireguard_key_write_result
   when: item.private_key is defined
   loop: "{{ wireguard_networks }}"
   tags: ansible-role-wireguard
@@ -36,12 +38,13 @@
   tags: ansible-role-wireguard
 
 - name: Generate WireGuard private key if missing
+  changed_when: true
   ansible.builtin.shell: "wg genkey > {{ wireguard_directory }}/{{ item.network_name }}.key"
+  register: wireguard_key_gen_result
   when: not wireguard_private_key.results[index].stat.exists
   loop: "{{ wireguard_networks }}"
   loop_control:
     index_var: index
-  notify: Restart WireGuard
   tags: ansible-role-wireguard
 
 - name: Set permissions on generated WireGuard private key
@@ -65,6 +68,7 @@
   tags: ansible-role-wireguard
 
 - name: Generate WireGuard public key if undefined
+  changed_when: true
   ansible.builtin.shell: "wg pubkey < {{ wireguard_directory }}/{{ item.network_name }}.key"
   register: wireguard_public_key
   when: item.public_key is not defined
@@ -92,6 +96,29 @@
     group: "{{ wireguard_group }}"
     mode: "0600"
     backup: "{{ wireguard_backup_conf | bool }}"
-  notify: Restart WireGuard
+  register: wireguard_conf_result
   loop: "{{ wireguard_networks }}"
+  tags: ansible-role-wireguard
+
+- name: Determine which WireGuard tunnels need restarting
+  ansible.builtin.set_fact:
+    wireguard_tunnels_to_restart: >-
+      {%- if wireguard_pkg_result.changed or wireguard_dir_result.changed -%}
+        {{ wireguard_networks | map(attribute='network_name') | list }}
+      {%- else -%}
+        {{
+          (wireguard_conf_result.results       | selectattr('changed') | map(attribute='item.network_name') | list
+          + wireguard_key_write_result.results  | selectattr('changed') | map(attribute='item.network_name') | list
+          + wireguard_key_gen_result.results    | selectattr('changed') | map(attribute='item.network_name') | list)
+          | unique
+        }}
+      {%- endif -%}
+  tags: ansible-role-wireguard
+
+- name: Restart changed WireGuard tunnels
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ item }}"
+    enabled: true
+    state: restarted
+  loop: "{{ wireguard_tunnels_to_restart }}"
   tags: ansible-role-wireguard

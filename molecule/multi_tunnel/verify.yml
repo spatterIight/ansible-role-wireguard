@@ -1,0 +1,252 @@
+---
+# Phase 1: Verify both services and interfaces are up
+- name: Verify both WireGuard services are active
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check wg-quick@wg0 service state
+      ansible.builtin.systemd:
+        name: wg-quick@wg0
+      register: wg0_service
+
+    - name: Assert wg0 service is active
+      ansible.builtin.assert:
+        that:
+          - wg0_service.status.ActiveState == 'active'
+        fail_msg: "wg-quick@wg0 is not active (state: {{ wg0_service.status.ActiveState }})"
+        success_msg: "wg-quick@wg0 is active"
+
+    - name: Check wg-quick@wg1 service state
+      ansible.builtin.systemd:
+        name: wg-quick@wg1
+      register: wg1_service
+
+    - name: Assert wg1 service is active
+      ansible.builtin.assert:
+        that:
+          - wg1_service.status.ActiveState == 'active'
+        fail_msg: "wg-quick@wg1 is not active (state: {{ wg1_service.status.ActiveState }})"
+        success_msg: "wg-quick@wg1 is active"
+
+    - name: Check wg0 interface exists
+      ansible.builtin.command: ip link show wg0
+      register: wg0_iface
+      changed_when: false
+
+    - name: Assert wg0 interface present
+      ansible.builtin.assert:
+        that: wg0_iface.rc == 0
+        fail_msg: "wg0 interface not found"
+
+    - name: Check wg1 interface exists
+      ansible.builtin.command: ip link show wg1
+      register: wg1_iface
+      changed_when: false
+
+    - name: Assert wg1 interface present
+      ansible.builtin.assert:
+        that: wg1_iface.rc == 0
+        fail_msg: "wg1 interface not found"
+
+# Phase 2: Verify connectivity over both tunnels
+- name: Verify connectivity over both tunnels from peer1
+  hosts: peer1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ping peer2 via wg0
+      ansible.builtin.command: ping -c 3 -W 5 10.100.0.2
+      register: ping_wg0
+      changed_when: false
+
+    - name: Assert wg0 ping succeeded
+      ansible.builtin.assert:
+        that: ping_wg0.rc == 0
+        fail_msg: "Ping over wg0 from peer1 to peer2 (10.100.0.2) failed"
+
+    - name: Ping peer2 via wg1
+      ansible.builtin.command: ping -c 3 -W 5 10.101.0.2
+      register: ping_wg1
+      changed_when: false
+
+    - name: Assert wg1 ping succeeded
+      ansible.builtin.assert:
+        that: ping_wg1.rc == 0
+        fail_msg: "Ping over wg1 from peer1 to peer2 (10.101.0.2) failed"
+
+# Phase 3: Per-tunnel restart test
+# Verify that changing wg0 config restarts only wg0, not wg1
+- name: Re-gather key facts for restart test
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read wg0 private key
+      ansible.builtin.slurp:
+        src: /tmp/wg0.key
+      register: wg0_priv_b64
+
+    - name: Read wg0 public key
+      ansible.builtin.slurp:
+        src: /tmp/wg0.pub
+      register: wg0_pub_b64
+
+    - name: Read wg1 private key
+      ansible.builtin.slurp:
+        src: /tmp/wg1.key
+      register: wg1_priv_b64
+
+    - name: Read wg1 public key
+      ansible.builtin.slurp:
+        src: /tmp/wg1.pub
+      register: wg1_pub_b64
+
+    - name: Set key facts
+      ansible.builtin.set_fact:
+        wg0_private_key: "{{ wg0_priv_b64.content | b64decode | trim }}"
+        wg0_public_key: "{{ wg0_pub_b64.content | b64decode | trim }}"
+        wg1_private_key: "{{ wg1_priv_b64.content | b64decode | trim }}"
+        wg1_public_key: "{{ wg1_pub_b64.content | b64decode | trim }}"
+
+- name: Record pre-mutation service timestamps
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Get ActiveEnterTimestamp for wg0
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg0
+      register: wg0_ts_before_raw
+
+    - name: Get ActiveEnterTimestamp for wg1
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg1
+      register: wg1_ts_before_raw
+
+    - name: Store pre-mutation timestamps as facts
+      ansible.builtin.set_fact:
+        wg0_ts_before: "{{ wg0_ts_before_raw.status.ActiveEnterTimestamp }}"
+        wg1_ts_before: "{{ wg1_ts_before_raw.status.ActiveEnterTimestamp }}"
+
+    - name: Display pre-mutation timestamps
+      ansible.builtin.debug:
+        msg:
+          - "wg0 before: {{ wg0_ts_before }}"
+          - "wg1 before: {{ wg1_ts_before }}"
+
+- name: Wait to ensure timestamp resolution
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Pause 2 seconds
+      ansible.builtin.pause:
+        seconds: 2
+
+- name: Re-apply role on peer1 with mutated wg0 allowed_ips
+  hosts: peer1
+  become: true
+  gather_facts: false
+  vars:
+    peer2_host: "{{ groups['peer2'][0] }}"
+    wireguard_networks:
+      - network_name: wg0
+        address: 10.100.0.1/24
+        listen_port: 51820
+        private_key: "{{ hostvars[inventory_hostname]['wg0_private_key'] }}"
+        public_key: "{{ hostvars[inventory_hostname]['wg0_public_key'] }}"
+        peers:
+          - public_key: "{{ hostvars[peer2_host]['wg0_public_key'] }}"
+            # MUTATION: added extra subnet to trigger wg0 config change
+            allowed_ips: "10.100.0.2/32,10.100.0.0/24"
+            endpoint: "{{ peer2_host }}:51820"
+            persistent_keepalive: 25
+      - network_name: wg1
+        address: 10.101.0.1/24
+        listen_port: 51821
+        private_key: "{{ hostvars[inventory_hostname]['wg1_private_key'] }}"
+        public_key: "{{ hostvars[inventory_hostname]['wg1_public_key'] }}"
+        peers:
+          - public_key: "{{ hostvars[peer2_host]['wg1_public_key'] }}"
+            allowed_ips: "10.101.0.2/32"
+            endpoint: "{{ peer2_host }}:51821"
+            persistent_keepalive: 25
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+
+- name: Re-apply role on peer2 with mutated wg0 allowed_ips
+  hosts: peer2
+  become: true
+  gather_facts: false
+  vars:
+    peer1_host: "{{ groups['peer1'][0] }}"
+    wireguard_networks:
+      - network_name: wg0
+        address: 10.100.0.2/24
+        listen_port: 51820
+        private_key: "{{ hostvars[inventory_hostname]['wg0_private_key'] }}"
+        public_key: "{{ hostvars[inventory_hostname]['wg0_public_key'] }}"
+        peers:
+          - public_key: "{{ hostvars[peer1_host]['wg0_public_key'] }}"
+            # MUTATION: added extra subnet to trigger wg0 config change
+            allowed_ips: "10.100.0.1/32,10.100.0.0/24"
+            endpoint: "{{ peer1_host }}:51820"
+            persistent_keepalive: 25
+      - network_name: wg1
+        address: 10.101.0.2/24
+        listen_port: 51821
+        private_key: "{{ hostvars[inventory_hostname]['wg1_private_key'] }}"
+        public_key: "{{ hostvars[inventory_hostname]['wg1_public_key'] }}"
+        peers:
+          - public_key: "{{ hostvars[peer1_host]['wg1_public_key'] }}"
+            allowed_ips: "10.101.0.1/32"
+            endpoint: "{{ peer1_host }}:51821"
+            persistent_keepalive: 25
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+
+- name: Assert per-tunnel restart behavior
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Get ActiveEnterTimestamp for wg0 after mutation
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg0
+      register: wg0_ts_after_raw
+
+    - name: Get ActiveEnterTimestamp for wg1 after mutation
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg1
+      register: wg1_ts_after_raw
+
+    - name: Parse post-mutation timestamps
+      ansible.builtin.set_fact:
+        wg0_ts_after: "{{ wg0_ts_after_raw.status.ActiveEnterTimestamp }}"
+        wg1_ts_after: "{{ wg1_ts_after_raw.status.ActiveEnterTimestamp }}"
+
+    - name: Display post-mutation timestamps
+      ansible.builtin.debug:
+        msg:
+          - "wg0 before: {{ wg0_ts_before }}"
+          - "wg0 after:  {{ wg0_ts_after }}"
+          - "wg1 before: {{ wg1_ts_before }}"
+          - "wg1 after:  {{ wg1_ts_after }}"
+
+    - name: Assert wg0 was restarted after config change
+      ansible.builtin.assert:
+        that:
+          - wg0_ts_after != wg0_ts_before
+        fail_msg: >
+          wg0 should have restarted (config changed) but timestamp did not change.
+          Before: {{ wg0_ts_before }}, After: {{ wg0_ts_after }}
+        success_msg: "wg0 was correctly restarted after config change"
+
+    - name: Assert wg1 was NOT restarted
+      ansible.builtin.assert:
+        that:
+          - wg1_ts_after == wg1_ts_before
+        fail_msg: >
+          wg1 should NOT have restarted (config unchanged) but timestamp changed.
+          Before: {{ wg1_ts_before }}, After: {{ wg1_ts_after }}
+        success_msg: "wg1 was correctly left running (not restarted)"

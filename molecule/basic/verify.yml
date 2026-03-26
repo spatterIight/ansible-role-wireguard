@@ -1,0 +1,66 @@
+---
+- name: Verify WireGuard service and interface
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check wg-quick@wg0 service state
+      ansible.builtin.systemd:
+        name: wg-quick@wg0
+      register: wg0_service
+
+    - name: Assert wg0 service is active
+      ansible.builtin.assert:
+        that:
+          - wg0_service.status.ActiveState == 'active'
+        fail_msg: "wg-quick@wg0 is not active (state: {{ wg0_service.status.ActiveState }})"
+        success_msg: "wg-quick@wg0 is active"
+
+    - name: Check wg0 interface exists
+      ansible.builtin.command: ip link show wg0
+      register: wg0_iface
+      changed_when: false
+
+    - name: Assert wg0 interface present
+      ansible.builtin.assert:
+        that: wg0_iface.rc == 0
+        fail_msg: "wg0 interface not found"
+
+    - name: Show wg interface status
+      ansible.builtin.command: wg show wg0
+      register: wg_show
+      changed_when: false
+
+    - name: Display wg show output
+      ansible.builtin.debug:
+        var: wg_show.stdout_lines
+
+- name: Verify tunnel connectivity peer1 -> peer2
+  hosts: peer1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ping peer2 via WireGuard
+      ansible.builtin.command: ping -c 3 -W 5 10.100.0.2
+      register: ping_result
+      changed_when: false
+
+    - name: Assert ping succeeded
+      ansible.builtin.assert:
+        that: ping_result.rc == 0
+        fail_msg: "Ping from peer1 to peer2 (10.100.0.2) failed"
+
+- name: Verify tunnel connectivity peer2 -> peer1
+  hosts: peer2
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ping peer1 via WireGuard
+      ansible.builtin.command: ping -c 3 -W 5 10.100.0.1
+      register: ping_result
+      changed_when: false
+
+    - name: Assert ping succeeded
+      ansible.builtin.assert:
+        that: ping_result.rc == 0
+        fail_msg: "Ping from peer2 to peer1 (10.100.0.1) failed"
