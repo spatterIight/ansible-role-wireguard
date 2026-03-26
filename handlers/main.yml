@@ -1,8 +1,0 @@
----
-- name: Restart WireGuard
-  ansible.builtin.systemd:
-    name: "wg-quick@{{ item.network_name }}"
-    enabled: true
-    state: restarted
-  loop: "{{ wireguard_networks }}"
-  tags: ansible-role-wireguard

@@ -1,0 +1,108 @@
+---
+- name: Gather Facts from All Hosts
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ensure all facts are gathered
+      ansible.builtin.setup:
+
+- name: Configure StrongSwan Peer 1
+  hosts: peer1
+  become: true
+  gather_facts: false
+  vars:
+    peer1_ip: "{{ ansible_default_ipv4.address }}"
+    peer2_ip: "{{ hostvars[groups['peer2'][0]]['ansible_default_ipv4']['address'] }}"
+    swanctl_conf: |
+      connections {
+        peer1-to-peer2 {
+          version = 2
+          local_addrs = {{ peer1_ip }}
+          remote_addrs = {{ peer2_ip }}
+          local {
+            auth = psk
+            id = {{ peer1_ip }}
+          }
+          remote {
+            auth = psk
+            id = {{ peer2_ip }}
+          }
+          children {
+            peer1-to-peer2 {
+              local_ts = 192.168.1.1/32
+              remote_ts = 192.168.2.1/32
+              esp_proposals = aes256-sha256
+              dpd_action = restart
+              start_action = start
+            }
+          }
+          proposals = aes256-sha256-modp2048
+          dpd_delay = 30s
+          dpd_timeout = 120s
+          rekey_time = 8h
+          reauth_time = 24h
+        }
+      }
+
+      secrets {
+        ike-1 {
+          id = {{ peer1_ip }}
+          secret = "{{ strongswan_psk }}"
+        }
+      }
+
+  tasks:
+    - name: Run the ansible-role-strongswan role for peer1
+      ansible.builtin.include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+
+- name: Configure StrongSwan Peer 2
+  hosts: peer2
+  become: true
+  gather_facts: false
+  vars:
+    peer1_ip: "{{ hostvars[groups['peer1'][0]]['ansible_default_ipv4']['address'] }}"
+    peer2_ip: "{{ ansible_default_ipv4.address }}"
+    swanctl_conf: |
+      connections {
+        peer2-to-peer1 {
+          version = 2
+          local_addrs = {{ peer2_ip }}
+          remote_addrs = {{ peer1_ip }}
+          local {
+            auth = psk
+            id = {{ peer2_ip }}
+          }
+          remote {
+            auth = psk
+            id = {{ peer1_ip }}
+          }
+          children {
+            peer2-to-peer1 {
+              local_ts = 192.168.2.1/32
+              remote_ts = 192.168.1.1/32
+              esp_proposals = aes256-sha256
+              dpd_action = restart
+              start_action = start
+            }
+          }
+          proposals = aes256-sha256-modp2048
+          dpd_delay = 30s
+          dpd_timeout = 120s
+          rekey_time = 8h
+          reauth_time = 24h
+        }
+      }
+
+      secrets {
+        ike-1 {
+          id = {{ peer2_ip }}
+          secret = "{{ strongswan_psk }}"
+        }
+      }
+
+  tasks:
+    - name: Run the ansible-role-strongswan role for peer2
+      ansible.builtin.include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"

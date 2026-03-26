@@ -1,0 +1,37 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 600
+      when: ansible_os_family == 'Debian'
+      changed_when: false
+
+    - name: Install ping utility
+      ansible.builtin.package:
+        name: iputils-ping
+        state: present
+      when: ansible_os_family == 'Debian'
+      ignore_errors: true
+
+    # Collection is defined in requirements.yml
+    - name: Enable IP forwarding # noqa syntax-check[unknown-module]
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: true
+
+    - name: Add tunnel IP to loopback for peer1
+      ansible.builtin.command: ip addr add 192.168.1.1/32 dev lo
+      when: inventory_hostname in groups['peer1']
+      ignore_errors: true
+
+    - name: Add tunnel IP to loopback for peer2
+      ansible.builtin.command: ip addr add 192.168.2.1/32 dev lo
+      when: inventory_hostname in groups['peer2']
+      ignore_errors: true

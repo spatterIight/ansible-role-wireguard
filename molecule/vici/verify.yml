@@ -1,0 +1,49 @@
+---
+- name: Verify IPsec Connectivity
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Get swanctl connections status
+      ansible.builtin.command: swanctl --list-sas
+      register: swanctl_status_check
+      changed_when: false
+
+    - name: Display swanctl status for debugging
+      ansible.builtin.debug:
+        var: swanctl_status_check.stdout_lines
+
+    - name: Check for active IPsec connections
+      ansible.builtin.assert:
+        that:
+          - swanctl_status_check.stdout is search("ESTABLISHED")
+        fail_msg: "No ESTABLISHED IPsec connections found"
+        success_msg: "IPsec connection is ESTABLISHED"
+
+- name: Test Connectivity from Peer 1 to Peer 2
+  hosts: peer1
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ping peer2 tunnel IP from peer1 # noqa no-changed-when
+      ansible.builtin.command: ping -c 3 192.168.2.1
+      register: ping_peer2_tunnel
+      ignore_errors: true
+
+    - name: Display ping results from peer1
+      ansible.builtin.debug:
+        var: ping_peer2_tunnel.stdout_lines
+
+- name: Test Connectivity from Peer 2 to Peer 1
+  hosts: peer2
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ping peer1 tunnel IP from peer2 # noqa no-changed-when
+      ansible.builtin.command: ping -c 3 192.168.1.1
+      register: ping_peer1_tunnel
+      ignore_errors: true
+
+    - name: Display ping results from peer2
+      ansible.builtin.debug:
+        var: ping_peer1_tunnel.stdout_lines

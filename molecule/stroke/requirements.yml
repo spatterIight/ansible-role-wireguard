@@ -1,0 +1,15 @@
+---
+#########
+# ROLES #
+#########
+
+roles: []
+
+###############
+# COLLECTIONS #
+###############
+
+collections:
+  - name: https://github.com/ansible-collections/ansible.posix.git
+    type: git
+    version: 2.1.0

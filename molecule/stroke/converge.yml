@@ -1,0 +1,82 @@
+---
+- name: Gather Facts from All Hosts
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Ensure all facts are gathered
+      ansible.builtin.setup:
+
+- name: Configure StrongSwan Peer 1
+  hosts: peer1
+  become: true
+  gather_facts: false
+  vars:
+    peer1_ip: "{{ ansible_default_ipv4.address }}"
+    peer2_ip: "{{ hostvars[groups['peer2'][0]]['ansible_default_ipv4']['address'] }}"
+    ipsec_conf: |
+      config setup
+          charondebug="all"
+
+      conn peer1-to-peer2
+          type=tunnel
+          auto=start
+          keyexchange=ikev2
+          authby=psk
+          left={{ peer1_ip }}
+          leftsubnet=192.168.1.1/32
+          right={{ peer2_ip }}
+          rightsubnet=192.168.2.1/32
+          ike=aes256-sha256-modp2048!
+          esp=aes256-sha256!
+          keyingtries=0
+          ikelifetime=24h
+          lifetime=8h
+          dpddelay=30
+          dpdtimeout=120
+          dpdaction=restart
+
+    ipsec_secrets: |
+      {{ peer1_ip }} {{ peer2_ip }} : PSK "{{ strongswan_psk }}"
+
+  tasks:
+    - name: Run the ansible-role-strongswan role for peer1
+      ansible.builtin.include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+
+- name: Configure StrongSwan Peer 2
+  hosts: peer2
+  become: true
+  gather_facts: false
+  vars:
+    peer1_ip: "{{ hostvars[groups['peer1'][0]]['ansible_default_ipv4']['address'] }}"
+    peer2_ip: "{{ ansible_default_ipv4.address }}"
+    ipsec_conf: |
+      config setup
+          charondebug="all"
+
+      conn peer2-to-peer1
+          type=tunnel
+          auto=start
+          keyexchange=ikev2
+          authby=psk
+          left={{ peer2_ip }}
+          leftsubnet=192.168.2.1/32
+          right={{ peer1_ip }}
+          rightsubnet=192.168.1.1/32
+          ike=aes256-sha256-modp2048!
+          esp=aes256-sha256!
+          keyingtries=0
+          ikelifetime=24h
+          lifetime=8h
+          dpddelay=30
+          dpdtimeout=120
+          dpdaction=restart
+
+    ipsec_secrets: |
+      {{ peer2_ip }} {{ peer1_ip }} : PSK "{{ strongswan_psk }}"
+
+  tasks:
+    - name: Run the ansible-role-strongswan role for peer2
+      ansible.builtin.include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
