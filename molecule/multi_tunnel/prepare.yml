@@ -19,7 +19,7 @@
         state: present
 
     - name: Enable IP forwarding
-      ansible.posix.sysctl: # noqa: unknown-module
+      ansible.posix.sysctl:
         name: net.ipv4.ip_forward
         value: '1'
         state: present
