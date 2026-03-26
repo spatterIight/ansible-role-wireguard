@@ -115,19 +115,19 @@
   gather_facts: false
   tasks:
     - name: Get ActiveEnterTimestamp for wg0
-      ansible.builtin.command: systemctl show wg-quick@wg0 --property=ActiveEnterTimestamp
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg0
       register: wg0_ts_before_raw
-      changed_when: false
 
     - name: Get ActiveEnterTimestamp for wg1
-      ansible.builtin.command: systemctl show wg-quick@wg1 --property=ActiveEnterTimestamp
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg1
       register: wg1_ts_before_raw
-      changed_when: false
 
     - name: Store pre-mutation timestamps as facts
       ansible.builtin.set_fact:
-        wg0_ts_before: "{{ wg0_ts_before_raw.stdout | regex_replace('^ActiveEnterTimestamp=', '') }}"
-        wg1_ts_before: "{{ wg1_ts_before_raw.stdout | regex_replace('^ActiveEnterTimestamp=', '') }}"
+        wg0_ts_before: "{{ wg0_ts_before_raw.status.ActiveEnterTimestamp }}"
+        wg1_ts_before: "{{ wg1_ts_before_raw.status.ActiveEnterTimestamp }}"
 
     - name: Display pre-mutation timestamps
       ansible.builtin.debug:
@@ -211,19 +211,19 @@
   gather_facts: false
   tasks:
     - name: Get ActiveEnterTimestamp for wg0 after mutation
-      ansible.builtin.command: systemctl show wg-quick@wg0 --property=ActiveEnterTimestamp
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg0
       register: wg0_ts_after_raw
-      changed_when: false
 
     - name: Get ActiveEnterTimestamp for wg1 after mutation
-      ansible.builtin.command: systemctl show wg-quick@wg1 --property=ActiveEnterTimestamp
+      ansible.builtin.systemd_service:
+        name: wg-quick@wg1
       register: wg1_ts_after_raw
-      changed_when: false
 
     - name: Parse post-mutation timestamps
       ansible.builtin.set_fact:
-        wg0_ts_after: "{{ wg0_ts_after_raw.stdout | regex_replace('^ActiveEnterTimestamp=', '') }}"
-        wg1_ts_after: "{{ wg1_ts_after_raw.stdout | regex_replace('^ActiveEnterTimestamp=', '') }}"
+        wg0_ts_after: "{{ wg0_ts_after_raw.status.ActiveEnterTimestamp }}"
+        wg1_ts_after: "{{ wg1_ts_after_raw.status.ActiveEnterTimestamp }}"
 
     - name: Display post-mutation timestamps
       ansible.builtin.debug:
