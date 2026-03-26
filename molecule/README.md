@@ -27,12 +27,14 @@ Tests two simultaneous WireGuard tunnels and validates the role's per-tunnel sma
 ## Running
 
 Ubuntu 24.04 (default):
+
 ```bash
 molecule test --scenario-name basic
 molecule test --scenario-name multi_tunnel
 ```
 
 Other distributions:
+
 ```bash
 # Ubuntu 22.04
 MOLECULE_DISTRO=ubuntu2204 molecule test --scenario-name basic

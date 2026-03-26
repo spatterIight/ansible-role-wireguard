@@ -1,0 +1,57 @@
+---
+name: molecule
+
+on: [push, pull_request]
+
+jobs:
+  molecule:
+    name: molecule [${{ matrix.scenario }}, ${{ matrix.distro }}]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        scenario:
+          - basic
+          - multi_tunnel
+        distro:
+          - ubuntu2404
+          - ubuntu2204
+          - debian12
+          - debian11
+      fail-fast: false
+
+    env:
+      MOLECULE_DISTRO: ${{ matrix.distro }}
+      PY_COLORS: "1"
+      ANSIBLE_FORCE_COLOR: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          path: wireguard
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: wireguard/molecule/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: wireguard
+        run: pip install -r molecule/requirements.txt
+
+      - name: Cache Ansible collections
+        uses: actions/cache@v4
+        with:
+          path: ~/.ansible/collections
+          key: ansible-collections-${{ hashFiles('wireguard/molecule/basic/requirements.yml') }}
+
+      - name: Install Ansible collections
+        working-directory: wireguard
+        run: ansible-galaxy collection install -r molecule/basic/requirements.yml
+
+      - name: Run molecule
+        working-directory: wireguard
+        run: molecule test -s ${{ matrix.scenario }}
