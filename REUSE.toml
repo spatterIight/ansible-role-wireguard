@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+version = 1
+
+# Computer-generated files and other files which cannot be copyrighted
+[[annotations]]
+path = [
+    ".ansible-lint",
+    ".gitignore",
+    ".pre-commit-config.yaml",
+    ".yamllint.yml",
+    ".github/workflows/pre-commit.yml",
+    ".github/workflows/molecule.yml",
+    "meta/main.yml",
+    "README.md",
+    "molecule/README.md",
+    "molecule/requirements.txt",
+    "molecule/**/requirements.yml",
+    "LICENSE",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
 ---
 # Phase 1: Verify both services and interfaces are up
 - name: Verify both WireGuard services are active
