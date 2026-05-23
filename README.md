@@ -44,3 +44,9 @@ One thing to keep in mind is how this role manages the public/private key-pair:
             allowed_ips: 0.0.0.0/0
             public_key: "{{ hostvars['my_endpoint_host']['wireguard_networks'][0]['public_key'] }}"
 ```
+
+## Molecule
+
+This role supports [Molecule](https://docs.ansible.com/projects/molecule/), an Ansible testing framework designed for developing and testing Ansible collections, playbooks, and roles.
+
+Refer to [this page](./molecule/README.md) for details about how to utilize it.

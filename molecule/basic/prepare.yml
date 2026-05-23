@@ -2,26 +2,26 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 ---
-- name: Prepare WireGuard hosts
+- name: Prepare WireGuard Molecule tests
   hosts: all
   become: true
   gather_facts: true
   tasks:
-    - name: Update apt cache
+    - name: Ensure apt cache is updated for WireGuard Molecule tests preparation
       ansible.builtin.apt:
         update_cache: true
         cache_valid_time: 600
       when: ansible_os_family == 'Debian'
       changed_when: false
 
-    - name: Install wireguard-tools and utilities
+    - name: Ensure wireguard-tools and utilities are installed for WireGuard Molecule tests preparation
       ansible.builtin.package:
         name:
           - wireguard-tools
           - iputils-ping
         state: present
 
-    - name: Enable IP forwarding
+    - name: Ensure IP forwarding is enabled for WireGuard Molecule tests preparation
       ansible.posix.sysctl:
         name: net.ipv4.ip_forward
         value: '1'
