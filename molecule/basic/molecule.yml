@@ -1,11 +1,14 @@
+# SPDX-FileCopyrightText: 2025 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
 ---
 driver:
   name: docker
   options:
     requirements-file: requirements.yml
 platforms:
-  - name: wg-${MOLECULE_DISTRO:-ubuntu2404}-basic-peer1
-    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2404}-ansible:latest"
+  - name: wg-${MOLECULE_DISTRO:-ubuntu2604}-basic-peer1
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -16,8 +19,8 @@ platforms:
       - name: wg-basic-net
     groups:
       - peer1
-  - name: wg-${MOLECULE_DISTRO:-ubuntu2404}-basic-peer2
-    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2404}-ansible:latest"
+  - name: wg-${MOLECULE_DISTRO:-ubuntu2604}-basic-peer2
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -37,5 +40,8 @@ provisioner:
   config_options:
     defaults:
       callback_result_format: yaml
+  env:
+    # Workaround for https://github.com/ansible/molecule/issues/4391
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
 verifier:
   name: ansible

@@ -1,11 +1,15 @@
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ---
 name: molecule
 
-on: [push, pull_request]
+on: [push, pull_request]  # yamllint disable-line rule:truthy
 
 jobs:
   molecule:
-    name: molecule [${{ matrix.scenario }}, ${{ matrix.distro }}]
+    name: Run Molecule scenario '${{ matrix.scenario }}' on ${{ matrix.distro }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -14,10 +18,8 @@ jobs:
           - basic
           - multi_tunnel
         distro:
-          - ubuntu2404
-          - ubuntu2204
-          - debian12
-          - debian11
+          - ubuntu2604
+          - debian13
       fail-fast: false
 
     env:
@@ -27,14 +29,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           path: wireguard
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6.2.0
         with:
-          python-version: "3.12"
+          python-version-file: wireguard/.python-version
           cache: pip
           cache-dependency-path: wireguard/molecule/requirements.txt
 
@@ -43,7 +45,7 @@ jobs:
         run: pip install -r molecule/requirements.txt
 
       - name: Cache Ansible collections
-        uses: actions/cache@v4
+        uses: actions/cache@v5.0.5
         with:
           path: ~/.ansible/collections
           key: ansible-collections-${{ hashFiles('wireguard/molecule/basic/requirements.yml') }}
@@ -52,6 +54,6 @@ jobs:
         working-directory: wireguard
         run: ansible-galaxy collection install -r molecule/basic/requirements.yml
 
-      - name: Run molecule
+      - name: Run Molecule
         working-directory: wireguard
-        run: molecule test -s ${{ matrix.scenario }}
+        run: molecule test --scenario-name ${{ matrix.scenario }}
