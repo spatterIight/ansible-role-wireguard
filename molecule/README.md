@@ -48,7 +48,7 @@ Tests two simultaneous WireGuard tunnels and validates the role's per-tunnel sma
 
 ## Running
 
-By default it is configured to run the scenarios on Ubuntu 24.04.
+By default it is configured to run the scenarios on Ubuntu 26.04.
 
 ```bash
 molecule test --scenario-name basic

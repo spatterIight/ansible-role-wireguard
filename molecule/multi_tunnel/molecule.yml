@@ -7,7 +7,7 @@ driver:
   options:
     requirements-file: requirements.yml
 platforms:
-  - name: wg-${MOLECULE_DISTRO:-ubuntu2404}-multitunnel-peer1
+  - name: wg-${MOLECULE_DISTRO:-ubuntu2604}-multitunnel-peer1
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -19,7 +19,7 @@ platforms:
       - name: wg-multitunnel-net
     groups:
       - peer1
-  - name: wg-${MOLECULE_DISTRO:-ubuntu2404}-multitunnel-peer2
+  - name: wg-${MOLECULE_DISTRO:-ubuntu2604}-multitunnel-peer2
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
