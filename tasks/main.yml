@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 ---
-- name: Install the WireGuard package
+- name: Ensure WireGuard packages are installed
   ansible.builtin.package:
     name:
       - wireguard
@@ -11,7 +11,7 @@
   register: wireguard_pkg_result
   tags: ansible-role-wireguard
 
-- name: Create the base WireGuard directory
+- name: Ensure WireGuard base directory exists
   ansible.builtin.file:
     path: "{{ wireguard_directory }}"
     state: directory
@@ -21,7 +21,7 @@
   register: wireguard_dir_result
   tags: ansible-role-wireguard
 
-- name: Write WireGuard private key if defined
+- name: Ensure WireGuard private key is present if defined
   ansible.builtin.copy:
     content: "{{ item.private_key }}"
     dest: "{{ wireguard_directory }}/{{ item.network_name }}.key"
@@ -33,7 +33,7 @@
   loop: "{{ wireguard_networks }}"
   tags: ansible-role-wireguard
 
-- name: Check if WireGuard private key exists
+- name: Check WireGuard private key existence
   ansible.builtin.stat:
     path: "{{ wireguard_directory }}/{{ item.network_name }}.key"
   register: wireguard_private_key
@@ -50,7 +50,7 @@
     index_var: index
   tags: ansible-role-wireguard
 
-- name: Set permissions on generated WireGuard private key
+- name: Ensure WireGuard private key permissions are set
   ansible.builtin.file:
     path: "{{ wireguard_directory }}/{{ item.network_name }}.key"
     owner: "{{ wireguard_user }}"
@@ -62,7 +62,7 @@
     index_var: index
   tags: ansible-role-wireguard
 
-- name: Read WireGuard private key from file if not defined
+- name: Check WireGuard private key file content if not defined
   ansible.builtin.slurp:
     src: "{{ wireguard_directory }}/{{ item.network_name }}.key"
   register: wireguard_private_key_content
@@ -85,13 +85,13 @@
   loop: "{{ wireguard_public_key.results }}"
   tags: ansible-role-wireguard
 
-- name: Trigger role failure
+- name: Fail if generated WireGuard public key needs to be recorded
   ansible.builtin.fail:
     msg: "Please add the generated WireGuard public key, printed above, to your wireguard_networks variables and re-run"
   when: not wireguard_public_key.skipped
   tags: ansible-role-wireguard
 
-- name: Write WireGuard configuration
+- name: Ensure WireGuard configuration is present
   ansible.builtin.template:
     src: wg.conf.j2
     dest: "{{ wireguard_directory }}/{{ item.network_name }}.conf"
