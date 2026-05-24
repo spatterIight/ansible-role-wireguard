@@ -58,15 +58,11 @@ molecule test --scenario-name multi_tunnel
 You can utilize other distributions by setting one to the `MOLECULE_DISTRO` environment variable:
 
 ```bash
-# Ubuntu 22.04
-MOLECULE_DISTRO=ubuntu2204 molecule test --scenario-name basic
-MOLECULE_DISTRO=ubuntu2204 molecule test --scenario-name multi_tunnel
+# Ubuntu 24.04
+MOLECULE_DISTRO=ubuntu2404 molecule test --scenario-name basic
+MOLECULE_DISTRO=ubuntu2404 molecule test --scenario-name multi_tunnel
 
 # Debian 13
 MOLECULE_DISTRO=debian13 molecule test --scenario-name basic
 MOLECULE_DISTRO=debian13 molecule test --scenario-name multi_tunnel
-
-# Debian 12
-MOLECULE_DISTRO=debian12 molecule test --scenario-name basic
-MOLECULE_DISTRO=debian12 molecule test --scenario-name multi_tunnel
 ```

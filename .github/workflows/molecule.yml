@@ -18,10 +18,8 @@ jobs:
           - basic
           - multi_tunnel
         distro:
-          - ubuntu2404
-          - ubuntu2204
-          - debian12
-          - debian11
+          - ubuntu2604
+          - debian13
       fail-fast: false
 
     env:
